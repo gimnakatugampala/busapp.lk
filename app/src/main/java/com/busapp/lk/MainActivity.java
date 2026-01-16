@@ -33,6 +33,8 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.Dot;
+import com.google.android.gms.maps.model.Gap;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
@@ -61,7 +63,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     // Multiple buses
     private List<Bus> buses;
     private Map<Marker, Bus> markerBusMap;
-    private Polyline currentRouteLine;
+    private List<Polyline> currentRouteLines;
     private Marker startMarker, endMarker, userMarker;
     private LatLng userLocation;
 
@@ -92,6 +94,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         random = new Random();
         handler = new Handler();
         markerBusMap = new HashMap<>();
+        currentRouteLines = new ArrayList<>();
 
         requestLocationPermission();
     }
@@ -140,8 +143,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 getUserLocation();
             } else {
-                Toast.makeText(this, "Location permission required for better experience",
+                Toast.makeText(this, "Using default location: Negombo, Sri Lanka",
                         Toast.LENGTH_LONG).show();
+                // Set default location even without permission
+                userLocation = new LatLng(7.2008, 79.8358); // Negombo, Sri Lanka
+                if (map != null) {
+                    addUserMarker();
+                }
             }
         }
     }
@@ -149,6 +157,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void getUserLocation() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
+            // Set default location to Negombo, Sri Lanka if no permission
+            userLocation = new LatLng(7.2008, 79.8358); // Negombo, Western Province, LK
+            if (map != null) {
+                addUserMarker();
+            }
             return;
         }
 
@@ -156,9 +169,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .addOnSuccessListener(this, location -> {
                     if (location != null) {
                         userLocation = new LatLng(location.getLatitude(), location.getLongitude());
-                        if (map != null) {
-                            addUserMarker();
-                        }
+                    } else {
+                        // Fallback to Negombo, Sri Lanka if GPS location not available
+                        userLocation = new LatLng(7.2008, 79.8358); // Negombo, Western Province, LK
+                        Toast.makeText(this, "Using default location: Negombo, Sri Lanka",
+                                Toast.LENGTH_SHORT).show();
+                    }
+                    if (map != null) {
+                        addUserMarker();
                     }
                 });
     }
@@ -220,10 +238,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             map.setMyLocationEnabled(true);
         }
 
-        // Add user marker if location already available
-        if (userLocation != null) {
-            addUserMarker();
+        // Set default location if not already set
+        if (userLocation == null) {
+            userLocation = new LatLng(7.2008, 79.8358); // Negombo, Sri Lanka
         }
+
+        // Add user marker
+        addUserMarker();
 
         // Add markers for all buses
         for (Bus bus : buses) {
@@ -238,12 +259,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             bus.marker = marker;
         }
 
-        LatLng colombo = new LatLng(6.9271, 79.8612);
-        if (userLocation != null) {
-            map.moveCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 13));
-        } else {
-            map.moveCamera(CameraUpdateFactory.newLatLngZoom(colombo, 12));
-        }
+        // Always move camera to user location (default or GPS)
+        map.moveCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 12));
 
         map.setOnMarkerClickListener(marker -> {
             Bus bus = markerBusMap.get(marker);
@@ -367,13 +384,29 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void showBusRoute(Bus bus) {
         clearRouteDisplay();
 
-        // Draw route line
-        PolylineOptions polylineOptions = new PolylineOptions()
-                .add(bus.startPoint, bus.endPoint)
-                .color(Color.parseColor("#4CAF50"))
-                .width(10)
+        LatLng currentPosition = new LatLng(bus.currentLat, bus.currentLng);
+
+        // Draw completed route (solid line) - from start to current position
+        PolylineOptions completedRoute = new PolylineOptions()
+                .add(bus.startPoint, currentPosition)
+                .color(Color.parseColor("#2E7D32")) // Darker green for completed
+                .width(12)
                 .geodesic(true);
-        currentRouteLine = map.addPolyline(polylineOptions);
+        Polyline completedLine = map.addPolyline(completedRoute);
+        currentRouteLines.add(completedLine);
+
+        // Draw remaining route (dotted line) - from current position to end
+        PolylineOptions remainingRoute = new PolylineOptions()
+                .add(currentPosition, bus.endPoint)
+                .color(Color.parseColor("#A5D6A7")) // Light green for remaining
+                .width(10)
+                .geodesic(true)
+                .pattern(java.util.Arrays.asList(
+                        new com.google.android.gms.maps.model.Dot(),
+                        new com.google.android.gms.maps.model.Gap(20f)
+                ));
+        Polyline remainingLine = map.addPolyline(remainingRoute);
+        currentRouteLines.add(remainingLine);
 
         // Add start marker
         startMarker = map.addMarker(new MarkerOptions()
@@ -391,17 +424,20 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         LatLngBounds.Builder builder = new LatLngBounds.Builder();
         builder.include(bus.startPoint);
         builder.include(bus.endPoint);
-        builder.include(new LatLng(bus.currentLat, bus.currentLng));
+        builder.include(currentPosition);
 
         LatLngBounds bounds = builder.build();
         map.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 150));
     }
 
     private void clearRouteDisplay() {
-        if (currentRouteLine != null) {
-            currentRouteLine.remove();
-            currentRouteLine = null;
+        for (Polyline polyline : currentRouteLines) {
+            if (polyline != null) {
+                polyline.remove();
+            }
         }
+        currentRouteLines.clear();
+
         if (startMarker != null) {
             startMarker.remove();
             startMarker = null;
