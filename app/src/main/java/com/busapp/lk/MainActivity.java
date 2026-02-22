@@ -86,6 +86,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private TextView tvRouteType, tvOperatorType;
     private View colorSwatch;
     private ImageView btnLocateMe;
+    private TextView btnZoomIn, btnZoomOut;
+    private LinearLayout fabColumn;
     private Bus selectedBus;
 
     @Override
@@ -185,11 +187,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         tvOperatorType = findViewById(R.id.tvOperatorType);
         colorSwatch = findViewById(R.id.colorSwatch);
         btnLocateMe = findViewById(R.id.btnLocateMe);
+        btnZoomIn   = findViewById(R.id.btnZoomIn);
+        btnZoomOut  = findViewById(R.id.btnZoomOut);
 
         btnLocateMe.setOnClickListener(v -> {
             if (userLocation != null && map != null) {
                 map.animateCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 15));
             }
+        });
+
+        btnZoomIn.setOnClickListener(v -> {
+            if (map != null) map.animateCamera(CameraUpdateFactory.zoomIn());
+        });
+
+        btnZoomOut.setOnClickListener(v -> {
+            if (map != null) map.animateCamera(CameraUpdateFactory.zoomOut());
         });
 
         cardBusInfo.setVisibility(View.GONE);
@@ -198,6 +210,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             cardBusInfo.setVisibility(View.GONE);
             selectedBus = null;
             clearRouteDisplay();
+            // Reset FAB column position
+            View fabCol = btnLocateMe != null ? (View) btnLocateMe.getParent() : null;
+            if (fabCol != null) fabCol.animate().translationY(0).setDuration(250).start();
         });
     }
 
@@ -466,6 +481,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 cardBusInfo.setVisibility(View.GONE);
                 selectedBus = null;
                 clearRouteDisplay();
+                View fabCol = btnLocateMe != null ? (View) btnLocateMe.getParent() : null;
+                if (fabCol != null) fabCol.animate().translationY(0).setDuration(250).start();
             }
         });
 
@@ -773,10 +790,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         cardBusInfo.setVisibility(View.VISIBLE);
 
         cardBusInfo.setTranslationY(300);
-        cardBusInfo.animate()
-                .translationY(0)
-                .setDuration(300)
-                .start();
+        cardBusInfo.animate().translationY(0).setDuration(300).start();
+
+        // Measure card height after layout and shift FAB column up
+        cardBusInfo.post(() -> {
+            int cardH = cardBusInfo.getHeight();
+            View fabCol = findViewById(R.id.btnLocateMe) != null
+                    ? (View) findViewById(R.id.btnLocateMe).getParent() : null;
+            if (fabCol != null) {
+                fabCol.animate().translationY(-cardH).setDuration(300).start();
+            }
+        });
     }
 
     private String getRouteTypeEmoji(String routeType) {

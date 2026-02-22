@@ -5,45 +5,93 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- Full-screen Map -->
+    <!-- ── Full-screen Map ── -->
     <fragment
         android:id="@+id/map"
         android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 
-    <!-- Bus count chip -->
-    <TextView
-        android:id="@+id/tvBusCount"
+    <!-- ── TOP-LEFT: Active Buses pill ── -->
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="top|end"
-        android:layout_marginTop="120dp"
-        android:layout_marginEnd="16dp"
+        android:layout_gravity="top|start"
+        android:layout_marginTop="52dp"
+        android:layout_marginStart="16dp"
         android:background="@drawable/chip_bg"
         android:elevation="6dp"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="6dp"
-        android:text="8 Buses Active"
-        android:textColor="#2E7D32"
-        android:textSize="12sp"
-        android:textStyle="bold"/>
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="8dp">
 
-    <!-- Locate Me FAB -->
-    <ImageView
-        android:id="@+id/btnLocateMe"
-        android:layout_width="52dp"
-        android:layout_height="52dp"
+        <View
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:background="@drawable/live_indicator"
+            android:layout_marginEnd="7dp"/>
+
+        <TextView
+            android:id="@+id/tvBusCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="8 Buses Active"
+            android:textColor="#2E7D32"
+            android:textSize="13sp"
+            android:textStyle="bold"/>
+    </LinearLayout>
+
+    <!-- ── RIGHT SIDE: FAB column (Locate + Zoom In + Zoom Out) ── -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="16dp"
-        android:layout_marginBottom="240dp"
-        android:background="@drawable/fab_bg"
-        android:elevation="8dp"
-        android:padding="14dp"
-        android:src="@android:drawable/ic_menu_compass"
-        android:contentDescription="My Location"/>
+        android:layout_marginBottom="20dp"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:elevation="8dp">
 
-    <!-- Bottom Sheet Card -->
+        <!-- Locate Me -->
+        <ImageView
+            android:id="@+id/btnLocateMe"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/fab_bg"
+            android:padding="12dp"
+            android:src="@android:drawable/ic_menu_compass"
+            android:contentDescription="My Location"
+            android:layout_marginBottom="10dp"/>
+
+        <!-- Zoom In -->
+        <TextView
+            android:id="@+id/btnZoomIn"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/fab_bg"
+            android:text="+"
+            android:textColor="#2E7D32"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="10dp"/>
+
+        <!-- Zoom Out -->
+        <TextView
+            android:id="@+id/btnZoomOut"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/fab_bg"
+            android:text="−"
+            android:textColor="#2E7D32"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:gravity="center"/>
+
+    </LinearLayout>
+
+    <!-- ── BOTTOM SHEET ── -->
     <androidx.cardview.widget.CardView
         android:id="@+id/cardBusInfo"
         android:layout_width="match_parent"
@@ -188,7 +236,7 @@
                 android:layout_marginHorizontal="20dp"
                 android:layout_marginTop="16dp"/>
 
-            <!-- Stats Row: Distance · ETA · Speed -->
+            <!-- Stats Row -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -291,7 +339,7 @@
                 android:layout_marginHorizontal="20dp"
                 android:layout_marginTop="14dp"/>
 
-            <!-- Route Section (Uber-style spine) -->
+            <!-- Route Spine -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -395,7 +443,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="Galle Road, Colombo"
-                    android:textColor="#9E9E9E"
+                    android:textColor="#66BB6A"
                     android:textSize="13sp"
                     android:layout_marginStart="6dp"
                     android:maxLines="1"
