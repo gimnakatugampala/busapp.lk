@@ -44,6 +44,8 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.android.gms.maps.model.MapStyleOptions;
+import android.content.res.Resources;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -77,12 +79,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     // UI Elements
     private CardView cardBusInfo;
-    private LinearLayout busInfoContent;
     private ImageView ivClose;
     private TextView tvBusId, tvBusNumber, tvSpeed, tvLocation, tvStatus;
     private TextView tvRouteDistance, tvStartPoint, tvEndPoint, tvProgress;
     private TextView tvDistanceToUser, tvETA;
     private TextView tvRouteType, tvOperatorType;
+    private View colorSwatch;
+    private ImageView btnLocateMe;
     private Bus selectedBus;
 
     @Override
@@ -166,7 +169,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private void initViews() {
         cardBusInfo = findViewById(R.id.cardBusInfo);
-        busInfoContent = findViewById(R.id.busInfoContent);
         ivClose = findViewById(R.id.ivClose);
         tvBusId = findViewById(R.id.tvBusId);
         tvBusNumber = findViewById(R.id.tvBusNumber);
@@ -181,6 +183,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         tvETA = findViewById(R.id.tvETA);
         tvRouteType = findViewById(R.id.tvRouteType);
         tvOperatorType = findViewById(R.id.tvOperatorType);
+        colorSwatch = findViewById(R.id.colorSwatch);
+        btnLocateMe = findViewById(R.id.btnLocateMe);
+
+        btnLocateMe.setOnClickListener(v -> {
+            if (userLocation != null && map != null) {
+                map.animateCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 15));
+            }
+        });
 
         cardBusInfo.setVisibility(View.GONE);
 
@@ -402,6 +412,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         map.setMapType(GoogleMap.MAP_TYPE_NORMAL);
         map.getUiSettings().setZoomControlsEnabled(false);
         map.getUiSettings().setMapToolbarEnabled(false);
+        map.getUiSettings().setMyLocationButtonEnabled(false);
+        map.setPadding(0, 0, 0, 200); // pad bottom for bottom sheet
+
+        // Apply Uber-style custom map theme
+        try {
+            MapStyleOptions style = MapStyleOptions.loadRawResourceStyle(this, R.raw.map_style);
+            map.setMapStyle(style);
+        } catch (Resources.NotFoundException e) {
+            // style file missing — continue with default
+        }
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
@@ -780,11 +800,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void updateBusInfoUI(Bus bus) {
-        tvBusId.setText("Bus ID: " + bus.id);
-        tvBusNumber.setText("Bus #" + bus.busNumber + "  · " + bus.colorName);
-        tvBusNumber.setBackgroundColor(Color.parseColor(bus.bodyColor));
+        tvBusNumber.setText("Bus #" + bus.busNumber);
+        tvBusNumber.setTextColor(Color.parseColor("#1A1A1A"));
+        tvBusId.setText("ID: " + bus.id + "  ·  " + bus.colorName);
         boolean isLight = bus.colorName.equals("White") || bus.colorName.equals("Yellow");
-        tvBusNumber.setTextColor(isLight ? Color.parseColor(bus.darkColor) : Color.WHITE);
+        // Color swatch bar beside the bus number
+        if (colorSwatch != null) {
+            colorSwatch.setBackgroundColor(Color.parseColor(bus.bodyColor));
+        }
         tvSpeed.setText(String.format("%.0f km/h", bus.speed));
 
         // Route type badge
@@ -837,13 +860,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         if (bus.speed < 5) {
             tvStatus.setText("● STOPPED");
-            tvStatus.setTextColor(Color.parseColor("#D32F2F"));
+            tvStatus.setTextColor(Color.WHITE);
+            tvStatus.setBackgroundColor(Color.parseColor("#D32F2F"));
         } else if (bus.speed < 20) {
             tvStatus.setText("● SLOW");
-            tvStatus.setTextColor(Color.parseColor("#F57C00"));
+            tvStatus.setTextColor(Color.WHITE);
+            tvStatus.setBackgroundColor(Color.parseColor("#F57C00"));
         } else {
             tvStatus.setText("● MOVING");
-            tvStatus.setTextColor(Color.parseColor("#388E3C"));
+            tvStatus.setTextColor(Color.WHITE);
+            tvStatus.setBackgroundColor(Color.parseColor("#43A047"));
         }
 
         getAddressFromLocation(bus.currentLat, bus.currentLng);
