@@ -288,29 +288,56 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void initBuses() {
         buses = new ArrayList<>();
 
-        // Bus 138: Pettah to Mount Lavinia
-        buses.add(new Bus("001", "138",
-                new LatLng(6.9271, 79.8612),
-                new LatLng(6.8406, 79.8636),
-                "Pettah", "Mount Lavinia", 15.2));
+        // ── Bus 138: Pettah → Mount Lavinia via Galle Road (A2) ── Green
+        List<LatLng> route138 = new ArrayList<>();
+        route138.add(new LatLng(6.9347, 79.8428)); // Pettah Bus Stand
+        route138.add(new LatLng(6.9298, 79.8479)); // Slave Island junction
+        route138.add(new LatLng(6.9228, 79.8497)); // Kollupitiya
+        route138.add(new LatLng(6.9133, 79.8497)); // Bambalapitiya
+        route138.add(new LatLng(6.9010, 79.8516)); // Wellawatte
+        route138.add(new LatLng(6.8866, 79.8565)); // Dehiwala
+        route138.add(new LatLng(6.8681, 79.8620)); // Ratmalana
+        route138.add(new LatLng(6.8406, 79.8636)); // Mount Lavinia
+        buses.add(new Bus("001", "138", route138,
+                "Pettah", "Mount Lavinia", 15.2,
+                "#2E7D32", "#1B5E20", "#4CAF50"));
 
-        // Bus 176: Fort to Nugegoda
-        buses.add(new Bus("002", "176",
-                new LatLng(6.9350, 79.8500),
-                new LatLng(6.8649, 79.8997),
-                "Fort Railway Station", "Nugegoda", 12.8));
+        // ── Bus 176: Fort → Nugegoda via Baseline Rd / High Level Rd ── Blue
+        List<LatLng> route176 = new ArrayList<>();
+        route176.add(new LatLng(6.9338, 79.8430)); // Fort Railway Station
+        route176.add(new LatLng(6.9217, 79.8613)); // Maradana
+        route176.add(new LatLng(6.9140, 79.8726)); // Borella
+        route176.add(new LatLng(6.9040, 79.8790)); // Narahenpita
+        route176.add(new LatLng(6.8908, 79.8850)); // Kirillapone
+        route176.add(new LatLng(6.8750, 79.8921)); // Nawala Junction
+        route176.add(new LatLng(6.8649, 79.8997)); // Nugegoda
+        buses.add(new Bus("002", "176", route176,
+                "Fort Railway Station", "Nugegoda", 12.8,
+                "#1565C0", "#0D47A1", "#42A5F5"));
 
-        // Bus 120: Colombo to Kaduwela
-        buses.add(new Bus("003", "120",
-                new LatLng(6.9180, 79.8700),
-                new LatLng(6.9330, 79.9840),
-                "Colombo Fort", "Kaduwela", 18.5));
+        // ── Bus 120: Colombo Fort → Kaduwela via Kandy Road (A1) ── Red
+        List<LatLng> route120 = new ArrayList<>();
+        route120.add(new LatLng(6.9338, 79.8430)); // Colombo Fort
+        route120.add(new LatLng(6.9217, 79.8613)); // Maradana
+        route120.add(new LatLng(6.9270, 79.8740)); // Dematagoda
+        route120.add(new LatLng(6.9310, 79.8900)); // Orugodawatta
+        route120.add(new LatLng(6.9330, 79.9100)); // Grandpass / Kolonnawa
+        route120.add(new LatLng(6.9335, 79.9370)); // Mulleriyawa
+        route120.add(new LatLng(6.9330, 79.9840)); // Kaduwela
+        buses.add(new Bus("003", "120", route120,
+                "Colombo Fort", "Kaduwela", 18.5,
+                "#C62828", "#B71C1C", "#EF5350"));
 
-        // Bus 155: Borella to Dehiwala
-        buses.add(new Bus("004", "155",
-                new LatLng(6.9140, 79.8800),
-                new LatLng(6.8520, 79.8650),
-                "Borella Junction", "Dehiwala Zoo", 9.3));
+        // ── Bus 155: Borella → Dehiwala via Havelock Rd ── Orange
+        List<LatLng> route155 = new ArrayList<>();
+        route155.add(new LatLng(6.9140, 79.8726)); // Borella Junction
+        route155.add(new LatLng(6.9060, 79.8680)); // Havelock Town
+        route155.add(new LatLng(6.8970, 79.8630)); // Pamankada
+        route155.add(new LatLng(6.8866, 79.8565)); // Dehiwala Junction
+        route155.add(new LatLng(6.8520, 79.8650)); // Dehiwala Zoo
+        buses.add(new Bus("004", "155", route155,
+                "Borella Junction", "Dehiwala Zoo", 9.3,
+                "#E65100", "#BF360C", "#FF7043"));
     }
 
     @Override
@@ -341,7 +368,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             LatLng position = new LatLng(bus.currentLat, bus.currentLng);
             Marker marker = map.addMarker(new MarkerOptions()
                     .position(position)
-                    .icon(createBusIcon(bus.busNumber))
+                    .icon(createBusIcon(bus.busNumber, bus.bodyColor, bus.darkColor, bus.accentColor))
                     .anchor(0.5f, 0.5f)
                     .flat(true));
 
@@ -369,40 +396,161 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         startRealTimeTracking();
     }
 
-    private BitmapDescriptor createBusIcon(String busNumber) {
-        int width = 120;
-        int height = 120;
-        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+    private int toAlphaHex(String hex, int alpha) {
+        int color = Color.parseColor(hex);
+        return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color));
+    }
+
+    private BitmapDescriptor createBusIcon(String busNumber, String bodyColor, String darkColor, String accentColor) {
+        // Draw at full resolution then scale down for crisp result
+        int origW = 160;
+        int origH = 200;
+        int w = 96;
+        int h = 120;
+        Bitmap bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
+        canvas.scale((float) w / origW, (float) h / origH);
+        w = origW;
+        h = origH;
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
-        paint.setColor(Color.parseColor("#2E7D32"));
+        // ---------- DROP SHADOW ----------
+        paint.setColor(Color.parseColor("#33000000"));
         paint.setStyle(Paint.Style.FILL);
-        RectF busBody = new RectF(20, 30, 100, 90);
-        canvas.drawRoundRect(busBody, 8, 8, paint);
+        canvas.drawOval(new RectF(24, h - 32, w - 24, h - 10), paint);
 
-        paint.setColor(Color.parseColor("#C8E6C9"));
-        canvas.drawRect(30, 40, 50, 55, paint);
-        canvas.drawRect(55, 40, 75, 55, paint);
-        canvas.drawRect(80, 40, 95, 55, paint);
+        // ---------- 3D BOTTOM FACE (underside depth) ----------
+        paint.setColor(Color.parseColor(darkColor));
+        RectF bottomFace = new RectF(18, 118, w - 18, 155);
+        canvas.drawRoundRect(bottomFace, 10, 10, paint);
 
+        // ---------- BUS MAIN BODY ----------
+        paint.setColor(Color.parseColor(bodyColor));
+        RectF body = new RectF(18, 42, w - 18, 130);
+        canvas.drawRoundRect(body, 14, 14, paint);
+
+        // ---------- BODY RIGHT-SIDE SHADING (3D depth) ----------
+        paint.setColor(toAlphaHex(bodyColor, 26));
+        RectF rightShade = new RectF(w - 40, 42, w - 18, 130);
+        canvas.drawRoundRect(rightShade, 14, 14, paint);
+
+        // ---------- BODY TOP HIGHLIGHT ----------
+        paint.setColor(toAlphaHex(accentColor, 51));
+        RectF topHighlight = new RectF(22, 44, w - 22, 70);
+        canvas.drawRoundRect(topHighlight, 12, 12, paint);
+
+        // ---------- ROOF ----------
+        paint.setColor(Color.parseColor(bodyColor));
+        RectF roof = new RectF(22, 34, w - 22, 60);
+        canvas.drawRoundRect(roof, 12, 12, paint);
+
+        // Roof gloss
+        paint.setColor(Color.parseColor("#2AFFFFFF"));
+        canvas.drawRoundRect(new RectF(28, 36, w - 28, 48), 8, 8, paint);
+
+        // ---------- WINDSHIELD (front top) ----------
+        paint.setColor(Color.parseColor("#B3BBDEFB"));
+        RectF windshield = new RectF(30, 56, w - 30, 82);
+        canvas.drawRoundRect(windshield, 6, 6, paint);
+
+        // Windshield reflection streak
+        paint.setColor(Color.parseColor("#60FFFFFF"));
+        canvas.drawRoundRect(new RectF(34, 58, 56, 64), 3, 3, paint);
+
+        // Windshield divider bar
+        paint.setColor(Color.parseColor(bodyColor));
+        paint.setStrokeWidth(2.5f);
+        paint.setStyle(Paint.Style.STROKE);
+        canvas.drawLine(w / 2f, 56, w / 2f, 82, paint);
+        paint.setStyle(Paint.Style.FILL);
+
+        // ---------- SIDE WINDOWS ----------
+        // Window row
+        int[] winX = {24, 58, 92};
+        for (int wx : winX) {
+            // Window frame
+            paint.setColor(Color.parseColor(darkColor));
+            canvas.drawRoundRect(new RectF(wx, 86, wx + 28, 112), 5, 5, paint);
+            // Window glass
+            paint.setColor(Color.parseColor("#99BBDEFB"));
+            canvas.drawRoundRect(new RectF(wx + 3, 89, wx + 25, 109), 4, 4, paint);
+            // Window shine
+            paint.setColor(Color.parseColor("#55FFFFFF"));
+            canvas.drawRoundRect(new RectF(wx + 5, 91, wx + 14, 97), 2, 2, paint);
+        }
+
+        // ---------- DOOR OUTLINE ----------
+        paint.setColor(Color.parseColor(darkColor));
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(2f);
+        canvas.drawRoundRect(new RectF(w - 44, 86, w - 20, 128), 5, 5, paint);
+        canvas.drawLine(w - 32, 86, w - 32, 128, paint);
+        paint.setStyle(Paint.Style.FILL);
+
+        // ---------- HEADLIGHTS ----------
+        paint.setColor(Color.parseColor("#FFFDE7"));
+        canvas.drawRoundRect(new RectF(22, 44, 36, 54), 4, 4, paint);
+        canvas.drawRoundRect(new RectF(w - 36, 44, w - 22, 54), 4, 4, paint);
+        // Headlight glow
+        paint.setColor(Color.parseColor("#40FFEE58"));
+        canvas.drawRoundRect(new RectF(20, 42, 38, 56), 5, 5, paint);
+        canvas.drawRoundRect(new RectF(w - 38, 42, w - 20, 56), 5, 5, paint);
+
+        // ---------- WHEELS (3D pill shape) ----------
+        // Wheel shadow
+        paint.setColor(Color.parseColor("#44000000"));
+        canvas.drawOval(new RectF(20, 140, 52, 162), paint);
+        canvas.drawOval(new RectF(w - 52, 140, w - 20, 162), paint);
+        // Tyre
+        paint.setColor(Color.parseColor("#212121"));
+        canvas.drawOval(new RectF(22, 136, 50, 160), paint);
+        canvas.drawOval(new RectF(w - 50, 136, w - 22, 160), paint);
+        // Rim
+        paint.setColor(Color.parseColor("#BDBDBD"));
+        canvas.drawOval(new RectF(28, 140, 44, 156), paint);
+        canvas.drawOval(new RectF(w - 44, 140, w - 28, 156), paint);
+        // Hub
         paint.setColor(Color.WHITE);
-        RectF numberBg = new RectF(35, 60, 85, 82);
-        canvas.drawRoundRect(numberBg, 4, 4, paint);
+        canvas.drawCircle(36, 148, 4, paint);
+        canvas.drawCircle(w - 36, 148, 4, paint);
 
-        paint.setColor(Color.parseColor("#1B5E20"));
-        paint.setTextSize(18);
+        // ---------- BUS NUMBER BADGE ----------
+        // Badge background
+        paint.setColor(Color.WHITE);
+        RectF badge = new RectF(34, 115, w - 34, 137);
+        canvas.drawRoundRect(badge, 8, 8, paint);
+        // Badge accent left
+        paint.setColor(Color.parseColor(accentColor));
+        canvas.drawRoundRect(new RectF(34, 115, 48, 137), 8, 8, paint);
+        canvas.drawRect(new RectF(42, 115, 48, 137), paint);
+
+        // Number text
+        paint.setColor(Color.parseColor(darkColor));
+        paint.setTextSize(15f);
         paint.setTextAlign(Paint.Align.CENTER);
         paint.setFakeBoldText(true);
-        canvas.drawText(busNumber, 60, 76, paint);
+        canvas.drawText(busNumber, w / 2f + 4, 131, paint);
 
-        paint.setColor(Color.parseColor("#66BB6A"));
-        Path triangle = new Path();
-        triangle.moveTo(60, 25);
-        triangle.lineTo(50, 35);
-        triangle.lineTo(70, 35);
-        triangle.close();
-        canvas.drawPath(triangle, paint);
+        // ---------- DIRECTION ARROW (top pointer) ----------
+        paint.setColor(Color.parseColor(accentColor));
+        Path arrow = new Path();
+        arrow.moveTo(w / 2f, 8);
+        arrow.lineTo(w / 2f - 14, 30);
+        arrow.lineTo(w / 2f - 5, 26);
+        arrow.lineTo(w / 2f - 5, 36);
+        arrow.lineTo(w / 2f + 5, 36);
+        arrow.lineTo(w / 2f + 5, 26);
+        arrow.lineTo(w / 2f + 14, 30);
+        arrow.close();
+        canvas.drawPath(arrow, paint);
+        // Arrow highlight
+        paint.setColor(Color.parseColor("#80FFFFFF"));
+        Path arrowShine = new Path();
+        arrowShine.moveTo(w / 2f, 10);
+        arrowShine.lineTo(w / 2f - 7, 24);
+        arrowShine.lineTo(w / 2f, 20);
+        arrowShine.close();
+        canvas.drawPath(arrowShine, paint);
 
         return BitmapDescriptorFactory.fromBitmap(bitmap);
     }
@@ -426,24 +574,35 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void updateBusPosition(Bus bus) {
-        double dirLat = bus.endPoint.latitude - bus.currentLat;
-        double dirLng = bus.endPoint.longitude - bus.currentLng;
+        if (bus.waypoints == null || bus.waypoints.isEmpty()) return;
+
+        // Target is the next waypoint in the list
+        LatLng target = bus.waypoints.get(bus.waypointIndex);
+        double dirLat = target.latitude - bus.currentLat;
+        double dirLng = target.longitude - bus.currentLng;
         double distance = Math.sqrt(dirLat * dirLat + dirLng * dirLng);
 
-        if (distance < 0.001) {
-            bus.currentLat = bus.startPoint.latitude;
-            bus.currentLng = bus.startPoint.longitude;
-            bus.distanceTraveled = 0;
+        if (distance < 0.0005) {
+            // Arrived at this waypoint — advance to the next
+            bus.waypointIndex++;
+            if (bus.waypointIndex >= bus.waypoints.size()) {
+                // Reached final stop — loop back to start
+                bus.waypointIndex = 0;
+                bus.currentLat = bus.waypoints.get(0).latitude;
+                bus.currentLng = bus.waypoints.get(0).longitude;
+                bus.distanceTraveled = 0;
+            }
         } else {
-            double step = 0.0004;
-            bus.currentLat += (dirLat / distance) * step + (random.nextDouble() - 0.5) * 0.0001;
-            bus.currentLng += (dirLng / distance) * step + (random.nextDouble() - 0.5) * 0.0001;
+            // Move smoothly along the road segment (no random jitter)
+            double step = 0.0003;
+            bus.currentLat += (dirLat / distance) * step;
+            bus.currentLng += (dirLng / distance) * step;
             bus.distanceTraveled += step * 111;
         }
 
         LatLng oldPosition = bus.marker.getPosition();
         LatLng newPosition = new LatLng(bus.currentLat, bus.currentLng);
-        bus.speed = 20 + random.nextDouble() * 35;
+        bus.speed = 20 + random.nextDouble() * 25;
 
         animateMarker(bus.marker, oldPosition, newPosition);
     }
@@ -466,11 +625,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void showBusRoute(Bus bus) {
         clearRouteDisplay();
 
+        // Draw polyline through every waypoint so it follows real roads
         PolylineOptions polylineOptions = new PolylineOptions()
-                .add(bus.startPoint, bus.endPoint)
-                .color(Color.parseColor("#4CAF50"))
+                .color(Color.parseColor(bus.accentColor))
                 .width(10)
                 .geodesic(true);
+        for (LatLng point : bus.waypoints) {
+            polylineOptions.add(point);
+        }
         currentRouteLine = map.addPolyline(polylineOptions);
 
         startMarker = map.addMarker(new MarkerOptions()
@@ -484,8 +646,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
 
         LatLngBounds.Builder builder = new LatLngBounds.Builder();
-        builder.include(bus.startPoint);
-        builder.include(bus.endPoint);
+        for (LatLng point : bus.waypoints) {
+            builder.include(point);
+        }
         builder.include(new LatLng(bus.currentLat, bus.currentLng));
 
         LatLngBounds bounds = builder.build();
@@ -652,20 +815,31 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         double speed;
         double distanceTraveled;
         Marker marker;
+        List<LatLng> waypoints;
+        int waypointIndex = 0;
 
-        Bus(String id, String busNumber, LatLng start, LatLng end,
-            String startName, String endName, double distance) {
+        String bodyColor;
+        String darkColor;
+        String accentColor;
+
+        Bus(String id, String busNumber, List<LatLng> waypoints,
+            String startName, String endName, double distance,
+            String bodyColor, String darkColor, String accentColor) {
             this.id = id;
             this.busNumber = busNumber;
-            this.startPoint = start;
-            this.endPoint = end;
+            this.waypoints = waypoints;
+            this.startPoint = waypoints.get(0);
+            this.endPoint = waypoints.get(waypoints.size() - 1);
             this.startPointName = startName;
             this.endPointName = endName;
             this.totalDistance = distance;
-            this.currentLat = start.latitude;
-            this.currentLng = start.longitude;
+            this.currentLat = startPoint.latitude;
+            this.currentLng = startPoint.longitude;
             this.speed = 30;
             this.distanceTraveled = 0;
+            this.bodyColor = bodyColor;
+            this.darkColor = darkColor;
+            this.accentColor = accentColor;
         }
     }
 }
