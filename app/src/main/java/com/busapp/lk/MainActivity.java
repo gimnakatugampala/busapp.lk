@@ -46,13 +46,20 @@ import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import android.content.res.Resources;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
 
@@ -736,19 +743,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         animator.start();
     }
 
+    private static final String MAPS_API_KEY = "AIzaSyCgWm7U-X7nODjuJiN0fYfsr0EIYvo1XNs";
+
     private void showBusRoute(Bus bus) {
         clearRouteDisplay();
 
-        // Draw polyline through every waypoint so it follows real roads
-        PolylineOptions polylineOptions = new PolylineOptions()
-                .color(Color.parseColor(bus.accentColor))
-                .width(10)
-                .geodesic(true);
-        for (LatLng point : bus.waypoints) {
-            polylineOptions.add(point);
-        }
-        currentRouteLine = map.addPolyline(polylineOptions);
-
+        // Pin start / end markers immediately
         startMarker = map.addMarker(new MarkerOptions()
                 .position(bus.startPoint)
                 .title("Start: " + bus.startPointName)
@@ -759,14 +759,130 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .title("End: " + bus.endPointName)
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
 
+        // Fit camera to route bounds right away
         LatLngBounds.Builder builder = new LatLngBounds.Builder();
-        for (LatLng point : bus.waypoints) {
-            builder.include(point);
-        }
-        builder.include(new LatLng(bus.currentLat, bus.currentLng));
+        for (LatLng p : bus.waypoints) builder.include(p);
+        map.animateCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 150));
 
-        LatLngBounds bounds = builder.build();
-        map.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 150));
+        // Fetch the real road polyline from Directions API in background
+        fetchDirectionsRoute(bus);
+    }
+
+    /**
+     * Calls the Google Maps Directions API with the bus waypoints and draws the
+     * actual road polyline returned. Falls back to straight-segment lines if the
+     * request fails (e.g. no network in emulator).
+     */
+    private void fetchDirectionsRoute(Bus bus) {
+        new Thread(() -> {
+            try {
+                // Build origin, destination, and intermediate waypoints
+                LatLng origin = bus.waypoints.get(0);
+                LatLng dest   = bus.waypoints.get(bus.waypoints.size() - 1);
+
+                StringBuilder url = new StringBuilder(
+                        "https://maps.googleapis.com/maps/api/directions/json?")
+                        .append("origin=").append(origin.latitude).append(",").append(origin.longitude)
+                        .append("&destination=").append(dest.latitude).append(",").append(dest.longitude)
+                        .append("&mode=driving");
+
+                // Add intermediate stops as pipe-separated waypoints
+                if (bus.waypoints.size() > 2) {
+                    url.append("&waypoints=");
+                    for (int i = 1; i < bus.waypoints.size() - 1; i++) {
+                        if (i > 1) url.append("|");
+                        LatLng wp = bus.waypoints.get(i);
+                        url.append(wp.latitude).append(",").append(wp.longitude);
+                    }
+                }
+                url.append("&key=").append(MAPS_API_KEY);
+
+                // HTTP GET
+                HttpURLConnection conn = (HttpURLConnection)
+                        new URL(url.toString()).openConnection();
+                conn.setConnectTimeout(8000);
+                conn.setReadTimeout(8000);
+
+                InputStream is = conn.getInputStream();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) sb.append(line);
+                conn.disconnect();
+
+                // Parse overview_polyline
+                JSONObject json = new JSONObject(sb.toString());
+                JSONArray routes = json.getJSONArray("routes");
+
+                if (routes.length() == 0) {
+                    drawFallbackPolyline(bus); // no route found
+                    return;
+                }
+
+                String encodedPoly = routes.getJSONObject(0)
+                        .getJSONObject("overview_polyline")
+                        .getString("points");
+
+                List<LatLng> decodedPath = decodePolyline(encodedPoly);
+
+                // Draw on UI thread
+                runOnUiThread(() -> {
+                    if (currentRouteLine != null) currentRouteLine.remove();
+                    PolylineOptions opts = new PolylineOptions()
+                            .addAll(decodedPath)
+                            .color(Color.parseColor(bus.accentColor))
+                            .width(12)
+                            .geodesic(false);
+                    currentRouteLine = map.addPolyline(opts);
+                });
+
+            } catch (Exception e) {
+                // Network unavailable (emulator) — fall back to waypoint segments
+                runOnUiThread(() -> drawFallbackPolyline(bus));
+            }
+        }).start();
+    }
+
+    /** Draws a simple segment-by-segment polyline through the bus waypoints. */
+    private void drawFallbackPolyline(Bus bus) {
+        if (currentRouteLine != null) currentRouteLine.remove();
+        PolylineOptions opts = new PolylineOptions()
+                .color(Color.parseColor(bus.accentColor))
+                .width(10)
+                .geodesic(true);
+        for (LatLng p : bus.waypoints) opts.add(p);
+        currentRouteLine = map.addPolyline(opts);
+    }
+
+    /**
+     * Decodes a Google Maps encoded polyline string into a list of LatLng points.
+     * Algorithm: https://developers.google.com/maps/documentation/utilities/polylinealgorithm
+     */
+    private List<LatLng> decodePolyline(String encoded) {
+        List<LatLng> path = new ArrayList<>();
+        int index = 0, len = encoded.length();
+        int lat = 0, lng = 0;
+
+        while (index < len) {
+            int b, shift = 0, result = 0;
+            do {
+                b = encoded.charAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            lat += ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+
+            shift = 0; result = 0;
+            do {
+                b = encoded.charAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            lng += ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+
+            path.add(new LatLng(lat / 1E5, lng / 1E5));
+        }
+        return path;
     }
 
     private void clearRouteDisplay() {
