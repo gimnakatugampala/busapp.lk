@@ -14,6 +14,7 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
 import android.view.animation.LinearInterpolator;
 import android.widget.ImageView;
@@ -26,15 +27,17 @@ import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.Priority;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import com.google.android.gms.maps.model.Dot;
-import com.google.android.gms.maps.model.Gap;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
@@ -60,10 +63,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Geocoder geocoder;
     private FusedLocationProviderClient fusedLocationClient;
 
+    // Location tracking
+    private LocationRequest locationRequest;
+    private LocationCallback locationCallback;
+    private boolean initialCameraSet = false;
+
     // Multiple buses
     private List<Bus> buses;
     private Map<Marker, Bus> markerBusMap;
-    private List<Polyline> currentRouteLines;
+    private Polyline currentRouteLine;
     private Marker startMarker, endMarker, userMarker;
     private LatLng userLocation;
 
@@ -83,6 +91,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         initViews();
         initBuses();
+        setupLocationRequest();
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
@@ -94,9 +103,64 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         random = new Random();
         handler = new Handler();
         markerBusMap = new HashMap<>();
-        currentRouteLines = new ArrayList<>();
 
         requestLocationPermission();
+    }
+
+    // Sri Lanka geographic bounding box
+    private static final double SL_LAT_MIN = 5.9;
+    private static final double SL_LAT_MAX = 9.9;
+    private static final double SL_LNG_MIN = 79.6;
+    private static final double SL_LNG_MAX = 82.0;
+
+    // Default fallback: Colombo Fort
+    private static final LatLng COLOMBO_DEFAULT = new LatLng(6.9271, 79.8612);
+
+    private boolean isInSriLanka(double lat, double lng) {
+        return lat >= SL_LAT_MIN && lat <= SL_LAT_MAX
+                && lng >= SL_LNG_MIN && lng <= SL_LNG_MAX;
+    }
+
+    private void applyLocation(Location location) {
+        if (location == null) return;
+
+        double lat = location.getLatitude();
+        double lng = location.getLongitude();
+
+        if (isInSriLanka(lat, lng)) {
+            // Real Sri Lanka location — use it
+            userLocation = new LatLng(lat, lng);
+        } else {
+            // Emulator / wrong country — fall back to Colombo
+            userLocation = COLOMBO_DEFAULT;
+        }
+
+        if (map != null) {
+            addUserMarker();
+            if (!initialCameraSet) {
+                map.animateCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 13));
+                initialCameraSet = true;
+            }
+        }
+
+        if (selectedBus != null && cardBusInfo.getVisibility() == View.VISIBLE) {
+            updateBusInfoUI(selectedBus);
+        }
+    }
+
+    private void setupLocationRequest() {
+        // Build a high-accuracy location request that updates every 5 seconds
+        locationRequest = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000)
+                .setMinUpdateIntervalMillis(2000)
+                .setWaitForAccurateLocation(false)
+                .build();
+
+        locationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(@NonNull LocationResult locationResult) {
+                applyLocation(locationResult.getLastLocation());
+            }
+        };
     }
 
     private void initViews() {
@@ -131,7 +195,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                     LOCATION_PERMISSION_REQUEST_CODE);
         } else {
-            getUserLocation();
+            startLocationUpdates();
         }
     }
 
@@ -141,44 +205,40 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                getUserLocation();
-            } else {
-                Toast.makeText(this, "Using default location: Negombo, Sri Lanka",
-                        Toast.LENGTH_LONG).show();
-                // Set default location even without permission
-                userLocation = new LatLng(7.2008, 79.8358); // Negombo, Sri Lanka
+                startLocationUpdates();
                 if (map != null) {
-                    addUserMarker();
+                    try {
+                        map.setMyLocationEnabled(true);
+                    } catch (SecurityException ignored) {}
                 }
+            } else {
+                Toast.makeText(this, "Location permission required for better experience",
+                        Toast.LENGTH_LONG).show();
             }
         }
     }
 
-    private void getUserLocation() {
+    private void startLocationUpdates() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
-            // Set default location to Negombo, Sri Lanka if no permission
-            userLocation = new LatLng(7.2008, 79.8358); // Negombo, Western Province, LK
-            if (map != null) {
-                addUserMarker();
-            }
             return;
         }
 
-        fusedLocationClient.getLastLocation()
-                .addOnSuccessListener(this, location -> {
-                    if (location != null) {
-                        userLocation = new LatLng(location.getLatitude(), location.getLongitude());
-                    } else {
-                        // Fallback to Negombo, Sri Lanka if GPS location not available
-                        userLocation = new LatLng(7.2008, 79.8358); // Negombo, Western Province, LK
-                        Toast.makeText(this, "Using default location: Negombo, Sri Lanka",
-                                Toast.LENGTH_SHORT).show();
-                    }
-                    if (map != null) {
-                        addUserMarker();
-                    }
-                });
+        // First, try getLastLocation for an instant result
+        fusedLocationClient.getLastLocation().addOnSuccessListener(this, this::applyLocation);
+
+        // Then start continuous updates for accuracy
+        fusedLocationClient.requestLocationUpdates(
+                locationRequest,
+                locationCallback,
+                Looper.getMainLooper()
+        );
+    }
+
+    private void stopLocationUpdates() {
+        if (fusedLocationClient != null && locationCallback != null) {
+            fusedLocationClient.removeLocationUpdates(locationCallback);
+        }
     }
 
     private void addUserMarker() {
@@ -191,10 +251,38 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         userMarker = map.addMarker(new MarkerOptions()
                 .position(userLocation)
                 .title("Your Location")
-                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
+                .icon(createUserLocationIcon())
+                .anchor(0.5f, 0.5f));
+    }
 
-        // Move camera to user location initially
-        map.animateCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 13));
+    private BitmapDescriptor createUserLocationIcon() {
+        int size = 56;
+        Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        float cx = size / 2f;
+        float cy = size / 2f;
+        float outerRadius = size / 2f - 2;
+        float innerRadius = outerRadius * 0.55f;
+
+        // Outer semi-transparent pulse ring
+        paint.setColor(Color.parseColor("#4D2196F3"));
+        paint.setStyle(Paint.Style.FILL);
+        canvas.drawCircle(cx, cy, outerRadius, paint);
+
+        // White border ring
+        paint.setColor(Color.WHITE);
+        canvas.drawCircle(cx, cy, innerRadius + 3.5f, paint);
+
+        // Main blue ball
+        paint.setColor(Color.parseColor("#2196F3"));
+        canvas.drawCircle(cx, cy, innerRadius, paint);
+
+        // Glossy shine highlight (top-left)
+        paint.setColor(Color.parseColor("#80FFFFFF"));
+        canvas.drawCircle(cx - innerRadius * 0.28f, cy - innerRadius * 0.30f, innerRadius * 0.38f, paint);
+
+        return BitmapDescriptorFactory.fromBitmap(bitmap);
     }
 
     private void initBuses() {
@@ -202,26 +290,26 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         // Bus 138: Pettah to Mount Lavinia
         buses.add(new Bus("001", "138",
-                new LatLng(6.9271, 79.8612), // Start: Pettah
-                new LatLng(6.8406, 79.8636), // End: Mount Lavinia
+                new LatLng(6.9271, 79.8612),
+                new LatLng(6.8406, 79.8636),
                 "Pettah", "Mount Lavinia", 15.2));
 
         // Bus 176: Fort to Nugegoda
         buses.add(new Bus("002", "176",
-                new LatLng(6.9350, 79.8500), // Start: Fort
-                new LatLng(6.8649, 79.8997), // End: Nugegoda
+                new LatLng(6.9350, 79.8500),
+                new LatLng(6.8649, 79.8997),
                 "Fort Railway Station", "Nugegoda", 12.8));
 
         // Bus 120: Colombo to Kaduwela
         buses.add(new Bus("003", "120",
-                new LatLng(6.9180, 79.8700), // Start: Colombo
-                new LatLng(6.9330, 79.9840), // End: Kaduwela
+                new LatLng(6.9180, 79.8700),
+                new LatLng(6.9330, 79.9840),
                 "Colombo Fort", "Kaduwela", 18.5));
 
         // Bus 155: Borella to Dehiwala
         buses.add(new Bus("004", "155",
-                new LatLng(6.9140, 79.8800), // Start: Borella
-                new LatLng(6.8520, 79.8650), // End: Dehiwala
+                new LatLng(6.9140, 79.8800),
+                new LatLng(6.8520, 79.8650),
                 "Borella Junction", "Dehiwala Zoo", 9.3));
     }
 
@@ -232,21 +320,23 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         map.getUiSettings().setZoomControlsEnabled(false);
         map.getUiSettings().setMapToolbarEnabled(false);
 
-        // Enable user location button
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
             map.setMyLocationEnabled(true);
         }
 
-        // Set default location if not already set
-        if (userLocation == null) {
-            userLocation = new LatLng(7.2008, 79.8358); // Negombo, Sri Lanka
+        // Add user marker if location already available
+        if (userLocation != null) {
+            addUserMarker();
+            if (!initialCameraSet) {
+                map.moveCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 13));
+                initialCameraSet = true;
+            }
+        } else {
+            // Default to Colombo while waiting for real location
+            map.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(6.9271, 79.8612), 12));
         }
 
-        // Add user marker
-        addUserMarker();
-
-        // Add markers for all buses
         for (Bus bus : buses) {
             LatLng position = new LatLng(bus.currentLat, bus.currentLng);
             Marker marker = map.addMarker(new MarkerOptions()
@@ -258,9 +348,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             markerBusMap.put(marker, bus);
             bus.marker = marker;
         }
-
-        // Always move camera to user location (default or GPS)
-        map.moveCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 12));
 
         map.setOnMarkerClickListener(marker -> {
             Bus bus = markerBusMap.get(marker);
@@ -339,24 +426,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void updateBusPosition(Bus bus) {
-        // Calculate direction towards end point
         double dirLat = bus.endPoint.latitude - bus.currentLat;
         double dirLng = bus.endPoint.longitude - bus.currentLng;
         double distance = Math.sqrt(dirLat * dirLat + dirLng * dirLng);
 
         if (distance < 0.001) {
-            // Reached end, reset to start
             bus.currentLat = bus.startPoint.latitude;
             bus.currentLng = bus.startPoint.longitude;
             bus.distanceTraveled = 0;
         } else {
-            // Move towards end point with some randomness
             double step = 0.0004;
             bus.currentLat += (dirLat / distance) * step + (random.nextDouble() - 0.5) * 0.0001;
             bus.currentLng += (dirLng / distance) * step + (random.nextDouble() - 0.5) * 0.0001;
-
-            // Update distance traveled
-            bus.distanceTraveled += step * 111; // Rough km conversion
+            bus.distanceTraveled += step * 111;
         }
 
         LatLng oldPosition = bus.marker.getPosition();
@@ -384,60 +466,37 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void showBusRoute(Bus bus) {
         clearRouteDisplay();
 
-        LatLng currentPosition = new LatLng(bus.currentLat, bus.currentLng);
-
-        // Draw completed route (solid line) - from start to current position
-        PolylineOptions completedRoute = new PolylineOptions()
-                .add(bus.startPoint, currentPosition)
-                .color(Color.parseColor("#2E7D32")) // Darker green for completed
-                .width(12)
-                .geodesic(true);
-        Polyline completedLine = map.addPolyline(completedRoute);
-        currentRouteLines.add(completedLine);
-
-        // Draw remaining route (dotted line) - from current position to end
-        PolylineOptions remainingRoute = new PolylineOptions()
-                .add(currentPosition, bus.endPoint)
-                .color(Color.parseColor("#A5D6A7")) // Light green for remaining
+        PolylineOptions polylineOptions = new PolylineOptions()
+                .add(bus.startPoint, bus.endPoint)
+                .color(Color.parseColor("#4CAF50"))
                 .width(10)
-                .geodesic(true)
-                .pattern(java.util.Arrays.asList(
-                        new com.google.android.gms.maps.model.Dot(),
-                        new com.google.android.gms.maps.model.Gap(20f)
-                ));
-        Polyline remainingLine = map.addPolyline(remainingRoute);
-        currentRouteLines.add(remainingLine);
+                .geodesic(true);
+        currentRouteLine = map.addPolyline(polylineOptions);
 
-        // Add start marker
         startMarker = map.addMarker(new MarkerOptions()
                 .position(bus.startPoint)
                 .title("Start: " + bus.startPointName)
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)));
 
-        // Add end marker
         endMarker = map.addMarker(new MarkerOptions()
                 .position(bus.endPoint)
                 .title("End: " + bus.endPointName)
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
 
-        // Adjust camera to show full route
         LatLngBounds.Builder builder = new LatLngBounds.Builder();
         builder.include(bus.startPoint);
         builder.include(bus.endPoint);
-        builder.include(currentPosition);
+        builder.include(new LatLng(bus.currentLat, bus.currentLng));
 
         LatLngBounds bounds = builder.build();
         map.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 150));
     }
 
     private void clearRouteDisplay() {
-        for (Polyline polyline : currentRouteLines) {
-            if (polyline != null) {
-                polyline.remove();
-            }
+        if (currentRouteLine != null) {
+            currentRouteLine.remove();
+            currentRouteLine = null;
         }
-        currentRouteLines.clear();
-
         if (startMarker != null) {
             startMarker.remove();
             startMarker = null;
@@ -465,17 +524,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         tvBusNumber.setText("Bus #" + bus.busNumber);
         tvSpeed.setText(String.format("%.0f km/h", bus.speed));
 
-        // Route information
         tvRouteDistance.setText(String.format("%.1f km", bus.totalDistance));
         tvStartPoint.setText(bus.startPointName);
         tvEndPoint.setText(bus.endPointName);
 
-        // Calculate progress percentage
         double progress = (bus.distanceTraveled / bus.totalDistance) * 100;
         if (progress > 100) progress = 100;
         tvProgress.setText(String.format("%.0f%% Complete", progress));
 
-        // Calculate distance to user and ETA
         if (userLocation != null) {
             double distanceToUser = calculateDistance(
                     userLocation.latitude, userLocation.longitude,
@@ -483,30 +539,28 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             tvDistanceToUser.setText(String.format("%.1f km away from you", distanceToUser));
 
-            // Calculate ETA (assuming average speed)
-            double avgSpeed = bus.speed > 0 ? bus.speed : 30; // Use 30 km/h as fallback
-            double etaHours = distanceToUser / avgSpeed;
-            double etaMinutes = etaHours * 60;
+            double avgSpeed = bus.speed > 0 ? bus.speed : 30;
+            double etaMinutes = (distanceToUser / avgSpeed) * 60;
 
             if (etaMinutes < 1) {
                 tvETA.setText("⚡ Arriving in less than 1 min");
                 tvETA.setTextColor(Color.parseColor("#D32F2F"));
             } else if (etaMinutes <= 5) {
-                tvETA.setText(String.format("⏱️ Near you in %d mins", (int)Math.ceil(etaMinutes)));
+                tvETA.setText(String.format("⏱️ Near you in %d mins", (int) Math.ceil(etaMinutes)));
                 tvETA.setTextColor(Color.parseColor("#388E3C"));
             } else if (etaMinutes <= 15) {
-                tvETA.setText(String.format("🚌 Arriving in %d mins", (int)Math.ceil(etaMinutes)));
+                tvETA.setText(String.format("🚌 Arriving in %d mins", (int) Math.ceil(etaMinutes)));
                 tvETA.setTextColor(Color.parseColor("#F57C00"));
             } else {
-                tvETA.setText(String.format("⏰ Arriving in %d mins", (int)Math.ceil(etaMinutes)));
+                tvETA.setText(String.format("⏰ Arriving in %d mins", (int) Math.ceil(etaMinutes)));
                 tvETA.setTextColor(Color.parseColor("#757575"));
             }
         } else {
-            tvDistanceToUser.setText("Enable location to see distance");
-            tvETA.setText("Location required for ETA");
+            tvDistanceToUser.setText("📍 Acquiring your location...");
+            tvETA.setText("Waiting for GPS fix");
+            tvETA.setTextColor(Color.parseColor("#757575"));
         }
 
-        // Update status
         if (bus.speed < 5) {
             tvStatus.setText("● STOPPED");
             tvStatus.setTextColor(Color.parseColor("#D32F2F"));
@@ -522,17 +576,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
-        // Haversine formula
-        final int R = 6371; // Radius of the earth in km
-
+        final int R = 6371;
         double latDistance = Math.toRadians(lat2 - lat1);
         double lonDistance = Math.toRadians(lon2 - lon1);
         double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
                 + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
                 * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-        return R * c; // Distance in km
+        return R * c;
     }
 
     private void getAddressFromLocation(double lat, double lng) {
@@ -563,8 +614,26 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        // Restart location updates when app comes to foreground
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED) {
+            startLocationUpdates();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // Stop location updates to save battery when app is backgrounded
+        stopLocationUpdates();
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
+        stopLocationUpdates();
         if (handler != null && updateRunnable != null) {
             handler.removeCallbacks(updateRunnable);
         }
