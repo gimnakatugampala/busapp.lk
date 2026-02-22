@@ -10,16 +10,46 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 
+    <LinearLayout
+        android:id="@+id/topBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/top_bar_bg"
+        android:orientation="horizontal"
+        android:paddingVertical="12dp"
+        android:paddingHorizontal="20dp"
+        android:elevation="4dp"
+        android:gravity="center_vertical">
+
+        <View
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:background="@drawable/live_dot"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="BusApp.lk"
+            android:textColor="#1B5E20"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginStart="8dp"
+            android:fontFamily="sans-serif-medium"/>
+    </LinearLayout>
+
     <androidx.cardview.widget.CardView
         android:id="@+id/cardBusInfo"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:layout_marginStart="12dp"
-        android:layout_marginEnd="12dp"
-        android:layout_marginBottom="16dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="24dp"
         app:cardCornerRadius="16dp"
-        app:cardElevation="8dp"
+        app:cardElevation="12dp"
         android:visibility="gone">
 
         <LinearLayout
@@ -27,267 +57,320 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="@android:color/white"
-            android:paddingBottom="16dp">
+            android:padding="20dp"
+            android:background="@drawable/card_gradient">
 
-            <!-- Drag Handle -->
-            <View
-                android:layout_width="40dp"
-                android:layout_height="4dp"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="8dp"
-                android:background="#BDBDBD"
-                android:alpha="0.5"/>
-
-            <!-- Header with ETA -->
-            <LinearLayout
+            <!-- ── Header Row: Bus number pill + close ── -->
+            <RelativeLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingStart="20dp"
-                android:paddingEnd="20dp"
-                android:gravity="center_vertical">
+                android:layout_height="wrap_content">
 
                 <LinearLayout
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_alignParentStart="true">
 
                     <TextView
                         android:id="@+id/tvBusNumber"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Bus 138"
-                        android:textColor="#000000"
+                        android:text="Bus #138  · Red"
+                        android:textColor="#FFFFFF"
                         android:textSize="20sp"
-                        android:textStyle="bold"/>
+                        android:textStyle="bold"
+                        android:background="@drawable/bus_number_pill"
+                        android:paddingHorizontal="16dp"
+                        android:paddingVertical="8dp"/>
 
-                    <LinearLayout
+                    <TextView
+                        android:id="@+id/tvStatus"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:layout_marginTop="4dp"
-                        android:gravity="center_vertical">
-
-                        <TextView
-                            android:id="@+id/tvStatus"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="● Moving"
-                            android:textSize="13sp"
-                            android:textColor="#388E3C"
-                            android:textStyle="bold"/>
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text=" • "
-                            android:textColor="#9E9E9E"
-                            android:textSize="14sp"/>
-
-                        <TextView
-                            android:id="@+id/tvETA"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="5 min away"
-                            android:textColor="#2E7D32"
-                            android:textSize="14sp"
-                            android:textStyle="bold"/>
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text=" • "
-                            android:textColor="#9E9E9E"
-                            android:textSize="14sp"/>
-
-                        <TextView
-                            android:id="@+id/tvDistanceToUser"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="2.5 km"
-                            android:textColor="#757575"
-                            android:textSize="14sp"/>
-                    </LinearLayout>
+                        android:text="● MOVING"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:layout_marginStart="10dp"/>
                 </LinearLayout>
 
                 <ImageView
                     android:id="@+id/ivClose"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
+                    android:layout_alignParentEnd="true"
                     android:src="@android:drawable/ic_menu_close_clear_cancel"
                     android:padding="6dp"
                     android:background="?attr/selectableItemBackgroundBorderless"/>
+            </RelativeLayout>
+
+            <!-- ── Bus ID ── -->
+            <TextView
+                android:id="@+id/tvBusId"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Bus ID: 001"
+                android:textColor="#2E7D32"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:layout_marginTop="8dp"/>
+
+            <!-- ── Route Type + Operator Type badges ── -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="10dp">
+
+                <TextView
+                    android:id="@+id/tvRouteType"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="🏙️ Colombo and Suburbs"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:paddingVertical="6dp"
+                    android:paddingHorizontal="8dp"
+                    android:background="@drawable/badge_rounded"/>
+
+                <View
+                    android:layout_width="8dp"
+                    android:layout_height="1dp"/>
+
+                <TextView
+                    android:id="@+id/tvOperatorType"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="🏛️ Public"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:paddingVertical="6dp"
+                    android:paddingHorizontal="8dp"
+                    android:background="@drawable/badge_rounded"/>
             </LinearLayout>
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:background="#F0F0F0"
-                android:layout_marginTop="12dp"/>
+                android:background="#E0E0E0"
+                android:layout_marginVertical="14dp"/>
 
-            <!-- Route Section -->
+            <!-- ── ETA / Distance Section ── -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/eta_card_bg"
+                android:padding="14dp">
+
+                <TextView
+                    android:id="@+id/tvDistanceToUser"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="2.5 km away from you"
+                    android:textColor="#1B5E20"
+                    android:textSize="14sp"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:id="@+id/tvETA"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⏱️ Near you in 5 mins"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="5dp"/>
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#E0E0E0"
+                android:layout_marginVertical="14dp"/>
+
+            <!-- ── Journey Route Section ── -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Journey Route"
+                android:textColor="#1B5E20"
+                android:textSize="15sp"
+                android:textStyle="bold"/>
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:paddingStart="20dp"
-                android:paddingEnd="20dp"
-                android:paddingTop="12dp"
-                android:paddingBottom="12dp"
-                android:gravity="center_vertical">
+                android:layout_marginTop="10dp">
 
-                <!-- Start to End -->
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-
-                    <View
-                        android:layout_width="8dp"
-                        android:layout_height="8dp"
-                        android:background="@drawable/live_dot"/>
-
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🟢 Start"
+                        android:textColor="#388E3C"
+                        android:textSize="11sp"
+                        android:textStyle="bold"/>
                     <TextView
                         android:id="@+id/tvStartPoint"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Pettah"
-                        android:textColor="#000000"
-                        android:textSize="14sp"
-                        android:layout_marginStart="8dp"
-                        android:maxLines="1"
-                        android:ellipsize="end"/>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text=" → "
-                        android:textColor="#9E9E9E"
-                        android:textSize="14sp"/>
-
-                    <TextView
-                        android:id="@+id/tvEndPoint"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Mt. Lavinia"
-                        android:textColor="#000000"
-                        android:textSize="14sp"
-                        android:maxLines="1"
+                        android:textColor="#1B5E20"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:layout_marginTop="3dp"
+                        android:maxLines="2"
                         android:ellipsize="end"/>
                 </LinearLayout>
 
-                <!-- Distance -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Distance"
+                        android:textColor="#757575"
+                        android:textSize="11sp"/>
+                    <TextView
+                        android:id="@+id/tvRouteDistance"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="15.2 km"
+                        android:textColor="#2E7D32"
+                        android:textSize="17sp"
+                        android:textStyle="bold"
+                        android:layout_marginTop="3dp"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="end">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🔴 End"
+                        android:textColor="#D32F2F"
+                        android:textSize="11sp"
+                        android:textStyle="bold"/>
+                    <TextView
+                        android:id="@+id/tvEndPoint"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Mount Lavinia"
+                        android:textColor="#1B5E20"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:layout_marginTop="3dp"
+                        android:maxLines="2"
+                        android:ellipsize="end"
+                        android:gravity="end"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- ── Progress ── -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/progress_bg"
+                android:padding="10dp">
                 <TextView
-                    android:id="@+id/tvRouteDistance"
+                    android:id="@+id/tvProgress"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="15.2 km"
-                    android:textColor="#757575"
-                    android:textSize="13sp"
-                    android:layout_marginStart="8dp"/>
+                    android:text="45% Complete"
+                    android:textColor="#1B5E20"
+                    android:textSize="12sp"
+                    android:textStyle="bold"/>
             </LinearLayout>
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:background="#F0F0F0"/>
+                android:background="#E0E0E0"
+                android:layout_marginVertical="14dp"/>
 
-            <!-- Bottom Info -->
+            <!-- ── Speed + Location ── -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingStart="20dp"
-                android:paddingEnd="20dp"
-                android:paddingTop="12dp">
+                android:orientation="horizontal">
 
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:orientation="vertical">
-
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Speed"
-                        android:textColor="#9E9E9E"
+                        android:textColor="#757575"
                         android:textSize="11sp"/>
-
                     <TextView
                         android:id="@+id/tvSpeed"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="35 km/h"
-                        android:textColor="#000000"
-                        android:textSize="14sp"
+                        android:textColor="#1B5E20"
+                        android:textSize="19sp"
                         android:textStyle="bold"
-                        android:layout_marginTop="2dp"/>
+                        android:layout_marginTop="3dp"/>
                 </LinearLayout>
 
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
+                    android:layout_weight="2"
+                    android:orientation="vertical"
+                    android:layout_marginStart="14dp">
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Progress"
-                        android:textColor="#9E9E9E"
+                        android:text="Current Location"
+                        android:textColor="#757575"
                         android:textSize="11sp"/>
-
-                    <TextView
-                        android:id="@+id/tvProgress"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="45%"
-                        android:textColor="#000000"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:layout_marginTop="2dp"/>
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1.5"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Location"
-                        android:textColor="#9E9E9E"
-                        android:textSize="11sp"/>
-
                     <TextView
                         android:id="@+id/tvLocation"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Galle Road"
-                        android:textColor="#000000"
-                        android:textSize="14sp"
+                        android:text="Galle Road, Colombo"
+                        android:textColor="#1B5E20"
+                        android:textSize="13sp"
                         android:textStyle="bold"
-                        android:layout_marginTop="2dp"
-                        android:maxLines="1"
+                        android:layout_marginTop="3dp"
+                        android:maxLines="2"
                         android:ellipsize="end"/>
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Hidden Bus ID for code compatibility -->
             <TextView
-                android:id="@+id/tvBusId"
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:visibility="gone"/>
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🕐 Live tracking active"
+                android:textColor="#388E3C"
+                android:textSize="12sp"
+                android:layout_marginTop="14dp"
+                android:layout_gravity="center"/>
 
         </LinearLayout>
     </androidx.cardview.widget.CardView>

@@ -82,6 +82,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private TextView tvBusId, tvBusNumber, tvSpeed, tvLocation, tvStatus;
     private TextView tvRouteDistance, tvStartPoint, tvEndPoint, tvProgress;
     private TextView tvDistanceToUser, tvETA;
+    private TextView tvRouteType, tvOperatorType;
     private Bus selectedBus;
 
     @Override
@@ -178,6 +179,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         tvProgress = findViewById(R.id.tvProgress);
         tvDistanceToUser = findViewById(R.id.tvDistanceToUser);
         tvETA = findViewById(R.id.tvETA);
+        tvRouteType = findViewById(R.id.tvRouteType);
+        tvOperatorType = findViewById(R.id.tvOperatorType);
 
         cardBusInfo.setVisibility(View.GONE);
 
@@ -288,56 +291,109 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void initBuses() {
         buses = new ArrayList<>();
 
-        // ── Bus 138: Pettah → Mount Lavinia via Galle Road (A2) ── Green
+        // ── Bus 138: Pettah → Mount Lavinia via Galle Road (A2) ── RED
         List<LatLng> route138 = new ArrayList<>();
-        route138.add(new LatLng(6.9347, 79.8428)); // Pettah Bus Stand
-        route138.add(new LatLng(6.9298, 79.8479)); // Slave Island junction
-        route138.add(new LatLng(6.9228, 79.8497)); // Kollupitiya
-        route138.add(new LatLng(6.9133, 79.8497)); // Bambalapitiya
-        route138.add(new LatLng(6.9010, 79.8516)); // Wellawatte
-        route138.add(new LatLng(6.8866, 79.8565)); // Dehiwala
-        route138.add(new LatLng(6.8681, 79.8620)); // Ratmalana
-        route138.add(new LatLng(6.8406, 79.8636)); // Mount Lavinia
+        route138.add(new LatLng(6.9347, 79.8428));
+        route138.add(new LatLng(6.9298, 79.8479));
+        route138.add(new LatLng(6.9228, 79.8497));
+        route138.add(new LatLng(6.9133, 79.8497));
+        route138.add(new LatLng(6.9010, 79.8516));
+        route138.add(new LatLng(6.8866, 79.8565));
+        route138.add(new LatLng(6.8681, 79.8620));
+        route138.add(new LatLng(6.8406, 79.8636));
         buses.add(new Bus("001", "138", route138,
                 "Pettah", "Mount Lavinia", 15.2,
-                "#2E7D32", "#1B5E20", "#4CAF50"));
+                "#F44336", "#B71C1C", "#EF9A9A", "Red",
+                "Colombo and Suburbs", "Public"));
 
-        // ── Bus 176: Fort → Nugegoda via Baseline Rd / High Level Rd ── Blue
+        // ── Bus 176: Fort → Nugegoda ── BLUE
         List<LatLng> route176 = new ArrayList<>();
-        route176.add(new LatLng(6.9338, 79.8430)); // Fort Railway Station
-        route176.add(new LatLng(6.9217, 79.8613)); // Maradana
-        route176.add(new LatLng(6.9140, 79.8726)); // Borella
-        route176.add(new LatLng(6.9040, 79.8790)); // Narahenpita
-        route176.add(new LatLng(6.8908, 79.8850)); // Kirillapone
-        route176.add(new LatLng(6.8750, 79.8921)); // Nawala Junction
-        route176.add(new LatLng(6.8649, 79.8997)); // Nugegoda
+        route176.add(new LatLng(6.9338, 79.8430));
+        route176.add(new LatLng(6.9217, 79.8613));
+        route176.add(new LatLng(6.9140, 79.8726));
+        route176.add(new LatLng(6.9040, 79.8790));
+        route176.add(new LatLng(6.8908, 79.8850));
+        route176.add(new LatLng(6.8750, 79.8921));
+        route176.add(new LatLng(6.8649, 79.8997));
         buses.add(new Bus("002", "176", route176,
                 "Fort Railway Station", "Nugegoda", 12.8,
-                "#1565C0", "#0D47A1", "#42A5F5"));
+                "#2196F3", "#0D47A1", "#90CAF9", "Blue",
+                "Express", "Private"));
 
-        // ── Bus 120: Colombo Fort → Kaduwela via Kandy Road (A1) ── Red
+        // ── Bus 120: Colombo Fort → Kaduwela ── WHITE
         List<LatLng> route120 = new ArrayList<>();
-        route120.add(new LatLng(6.9338, 79.8430)); // Colombo Fort
-        route120.add(new LatLng(6.9217, 79.8613)); // Maradana
-        route120.add(new LatLng(6.9270, 79.8740)); // Dematagoda
-        route120.add(new LatLng(6.9310, 79.8900)); // Orugodawatta
-        route120.add(new LatLng(6.9330, 79.9100)); // Grandpass / Kolonnawa
-        route120.add(new LatLng(6.9335, 79.9370)); // Mulleriyawa
-        route120.add(new LatLng(6.9330, 79.9840)); // Kaduwela
+        route120.add(new LatLng(6.9338, 79.8430));
+        route120.add(new LatLng(6.9217, 79.8613));
+        route120.add(new LatLng(6.9270, 79.8740));
+        route120.add(new LatLng(6.9310, 79.8900));
+        route120.add(new LatLng(6.9330, 79.9100));
+        route120.add(new LatLng(6.9335, 79.9370));
+        route120.add(new LatLng(6.9330, 79.9840));
         buses.add(new Bus("003", "120", route120,
                 "Colombo Fort", "Kaduwela", 18.5,
-                "#C62828", "#B71C1C", "#EF5350"));
+                "#FFFFFF", "#616161", "#E0E0E0", "White",
+                "Intercity", "Public"));
 
-        // ── Bus 155: Borella → Dehiwala via Havelock Rd ── Orange
+        // ── Bus 155: Borella → Dehiwala ── YELLOW
         List<LatLng> route155 = new ArrayList<>();
-        route155.add(new LatLng(6.9140, 79.8726)); // Borella Junction
-        route155.add(new LatLng(6.9060, 79.8680)); // Havelock Town
-        route155.add(new LatLng(6.8970, 79.8630)); // Pamankada
-        route155.add(new LatLng(6.8866, 79.8565)); // Dehiwala Junction
-        route155.add(new LatLng(6.8520, 79.8650)); // Dehiwala Zoo
+        route155.add(new LatLng(6.9140, 79.8726));
+        route155.add(new LatLng(6.9060, 79.8680));
+        route155.add(new LatLng(6.8970, 79.8630));
+        route155.add(new LatLng(6.8866, 79.8565));
+        route155.add(new LatLng(6.8520, 79.8650));
         buses.add(new Bus("004", "155", route155,
                 "Borella Junction", "Dehiwala Zoo", 9.3,
-                "#E65100", "#BF360C", "#FF7043"));
+                "#FFC107", "#F57F17", "#FFE082", "Yellow",
+                "Colombo and Suburbs", "Private"));
+
+        // ── Bus 400: Pettah → Moratuwa ── GREEN
+        List<LatLng> route400 = new ArrayList<>();
+        route400.add(new LatLng(6.9347, 79.8428));
+        route400.add(new LatLng(6.9010, 79.8516));
+        route400.add(new LatLng(6.8681, 79.8620));
+        route400.add(new LatLng(6.8200, 79.8700));
+        route400.add(new LatLng(6.7730, 79.8810));
+        buses.add(new Bus("005", "400", route400,
+                "Pettah", "Moratuwa", 20.1,
+                "#4CAF50", "#1B5E20", "#A5D6A7", "Green",
+                "Intercity", "Private"));
+
+        // ── Bus 212: Maradana → Kelaniya ── ORANGE
+        List<LatLng> route212 = new ArrayList<>();
+        route212.add(new LatLng(6.9217, 79.8613));
+        route212.add(new LatLng(6.9320, 79.8700));
+        route212.add(new LatLng(6.9420, 79.8780));
+        route212.add(new LatLng(6.9540, 79.8880));
+        route212.add(new LatLng(6.9540, 79.9200));
+        buses.add(new Bus("006", "212", route212,
+                "Maradana", "Kelaniya", 11.3,
+                "#FF5722", "#BF360C", "#FFAB91", "Orange",
+                "Colombo and Suburbs", "Public"));
+
+        // ── Bus 315: Fort → Malabe ── BLACK
+        List<LatLng> route315 = new ArrayList<>();
+        route315.add(new LatLng(6.9338, 79.8430));
+        route315.add(new LatLng(6.9217, 79.8613));
+        route315.add(new LatLng(6.9140, 79.8726));
+        route315.add(new LatLng(6.9200, 79.9000));
+        route315.add(new LatLng(6.9050, 79.9700));
+        route315.add(new LatLng(6.9100, 79.9980));
+        buses.add(new Bus("007", "315", route315,
+                "Fort", "Malabe", 16.7,
+                "#212121", "#000000", "#616161", "Black",
+                "International Airport", "Private"));
+
+        // ── Bus 187: Nugegoda → Kottawa ── PURPLE
+        List<LatLng> route187 = new ArrayList<>();
+        route187.add(new LatLng(6.8649, 79.8997));
+        route187.add(new LatLng(6.8530, 79.9100));
+        route187.add(new LatLng(6.8400, 79.9200));
+        route187.add(new LatLng(6.8250, 79.9400));
+        route187.add(new LatLng(6.8100, 79.9630));
+        buses.add(new Bus("008", "187", route187,
+                "Nugegoda", "Kottawa", 13.5,
+                "#9C27B0", "#4A148C", "#CE93D8", "Purple",
+                "Domestic Airport", "Public"));
     }
 
     @Override
@@ -368,7 +424,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             LatLng position = new LatLng(bus.currentLat, bus.currentLng);
             Marker marker = map.addMarker(new MarkerOptions()
                     .position(position)
-                    .icon(createBusIcon(bus.busNumber, bus.bodyColor, bus.darkColor, bus.accentColor))
+                    .icon(createBusIcon(bus.busNumber, bus.bodyColor, bus.darkColor, bus.accentColor, bus.colorName))
                     .anchor(0.5f, 0.5f)
                     .flat(true));
 
@@ -401,7 +457,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color));
     }
 
-    private BitmapDescriptor createBusIcon(String busNumber, String bodyColor, String darkColor, String accentColor) {
+    private BitmapDescriptor createBusIcon(String busNumber, String bodyColor, String darkColor, String accentColor, String colorName) {
         // Draw at full resolution then scale down for crisp result
         int origW = 160;
         int origH = 200;
@@ -515,21 +571,42 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         canvas.drawCircle(w - 36, 148, 4, paint);
 
         // ---------- BUS NUMBER BADGE ----------
-        // Badge background
-        paint.setColor(Color.WHITE);
-        RectF badge = new RectF(34, 115, w - 34, 137);
-        canvas.drawRoundRect(badge, 8, 8, paint);
-        // Badge accent left
-        paint.setColor(Color.parseColor(accentColor));
-        canvas.drawRoundRect(new RectF(34, 115, 48, 137), 8, 8, paint);
-        canvas.drawRect(new RectF(42, 115, 48, 137), paint);
+        // Determine text color: dark text on light buses (white/yellow), white on dark
+        boolean isLightBus = colorName.equals("White") || colorName.equals("Yellow");
+        int badgeTextColor = isLightBus
+                ? Color.parseColor(darkColor) : Color.WHITE;
+        int badgeBgColor = isLightBus
+                ? Color.parseColor(darkColor) : Color.WHITE;
+        int badgeNumColor = isLightBus
+                ? Color.WHITE : Color.parseColor(darkColor);
 
-        // Number text
-        paint.setColor(Color.parseColor(darkColor));
-        paint.setTextSize(15f);
+        // Badge background (contrast colour)
+        paint.setColor(badgeBgColor);
+        RectF badge = new RectF(22, 112, w - 22, 135);
+        canvas.drawRoundRect(badge, 8, 8, paint);
+
+        // Bus number
+        paint.setColor(badgeNumColor);
+        paint.setTextSize(14f);
         paint.setTextAlign(Paint.Align.CENTER);
         paint.setFakeBoldText(true);
-        canvas.drawText(busNumber, w / 2f + 4, 131, paint);
+        canvas.drawText("#" + busNumber, w / 2f, 127, paint);
+
+        // ---------- COLOR NAME LABEL (below badge) ----------
+        // Label pill background
+        paint.setColor(Color.parseColor(bodyColor));
+        // Stroke border for white bus so label is visible
+        if (colorName.equals("White")) {
+            paint.setColor(Color.parseColor(darkColor));
+        }
+        RectF labelBg = new RectF(28, 138, w - 28, 156);
+        canvas.drawRoundRect(labelBg, 8, 8, paint);
+
+        paint.setColor(isLightBus ? Color.WHITE : Color.WHITE);
+        paint.setTextSize(11f);
+        paint.setFakeBoldText(true);
+        paint.setTextAlign(Paint.Align.CENTER);
+        canvas.drawText(colorName.toUpperCase(), w / 2f, 151, paint);
 
         // ---------- DIRECTION ARROW (top pointer) ----------
         paint.setColor(Color.parseColor(accentColor));
@@ -682,10 +759,44 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .start();
     }
 
+    private String getRouteTypeEmoji(String routeType) {
+        switch (routeType) {
+            case "Express":              return "⚡";
+            case "Intercity":            return "🚌";
+            case "International Airport": return "✈️";
+            case "Domestic Airport":     return "🛩️";
+            default:                     return "🏙️"; // Colombo and Suburbs
+        }
+    }
+
+    private int getRouteTypeColor(String routeType) {
+        switch (routeType) {
+            case "Express":              return Color.parseColor("#D32F2F"); // deep red
+            case "Intercity":            return Color.parseColor("#1565C0"); // deep blue
+            case "International Airport": return Color.parseColor("#00838F"); // teal
+            case "Domestic Airport":     return Color.parseColor("#2E7D32"); // green
+            default:                     return Color.parseColor("#E65100"); // orange — Colombo & Suburbs
+        }
+    }
+
     private void updateBusInfoUI(Bus bus) {
         tvBusId.setText("Bus ID: " + bus.id);
-        tvBusNumber.setText("Bus #" + bus.busNumber);
+        tvBusNumber.setText("Bus #" + bus.busNumber + "  · " + bus.colorName);
+        tvBusNumber.setBackgroundColor(Color.parseColor(bus.bodyColor));
+        boolean isLight = bus.colorName.equals("White") || bus.colorName.equals("Yellow");
+        tvBusNumber.setTextColor(isLight ? Color.parseColor(bus.darkColor) : Color.WHITE);
         tvSpeed.setText(String.format("%.0f km/h", bus.speed));
+
+        // Route type badge
+        tvRouteType.setText(getRouteTypeEmoji(bus.routeType) + " " + bus.routeType);
+        tvRouteType.setBackgroundColor(getRouteTypeColor(bus.routeType));
+        tvRouteType.setTextColor(Color.WHITE);
+
+        // Operator type badge
+        boolean isPrivate = bus.operatorType.equals("Private");
+        tvOperatorType.setText(isPrivate ? "🏢 Private" : "🏛️ Public");
+        tvOperatorType.setBackgroundColor(isPrivate ? Color.parseColor("#6A1B9A") : Color.parseColor("#1565C0"));
+        tvOperatorType.setTextColor(Color.WHITE);
 
         tvRouteDistance.setText(String.format("%.1f km", bus.totalDistance));
         tvStartPoint.setText(bus.startPointName);
@@ -821,10 +932,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         String bodyColor;
         String darkColor;
         String accentColor;
+        String colorName;
+        String routeType;    // Express | Intercity | Colombo and Suburbs | International Airport | Domestic Airport
+        String operatorType; // Private | Public
 
         Bus(String id, String busNumber, List<LatLng> waypoints,
             String startName, String endName, double distance,
-            String bodyColor, String darkColor, String accentColor) {
+            String bodyColor, String darkColor, String accentColor, String colorName,
+            String routeType, String operatorType) {
             this.id = id;
             this.busNumber = busNumber;
             this.waypoints = waypoints;
@@ -840,6 +955,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             this.bodyColor = bodyColor;
             this.darkColor = darkColor;
             this.accentColor = accentColor;
+            this.colorName = colorName;
+            this.routeType = routeType;
+            this.operatorType = operatorType;
         }
     }
 }
